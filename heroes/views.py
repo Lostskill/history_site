@@ -5,10 +5,11 @@ from django.views.generic import ListView, DetailView, CreateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .forms import *
 from .models import *
-
+from django.contrib.auth.forms import UserCreationForm
 from .utils import * 
 
-class HeroesHome(DataMixin, ListView):
+class HeroesHome(DataMixin, ListView): 
+    
     model = Heroes
     template_name = 'heroes/index.html'
     context_object_name = 'posts'
@@ -100,6 +101,7 @@ class ShowPost(DataMixin, DetailView):
 
 
 class HeroesCategory(DataMixin, ListView):
+     
     model = Heroes
     template_name = 'heroes/index.html'
     context_object_name = 'posts'
@@ -129,3 +131,13 @@ class HeroesCategory(DataMixin, ListView):
 #
 #     return render(request, 'women/index.html', context=context)
 
+class RegisterUser(DataMixin, CreateView):
+
+    form_class = RegisterUserForm
+    template_name = 'heroes/register.html'
+    success_url = reverse_lazy('login') 
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title='Регистрация Пользователя') 
+        return dict(list(context.items()) + list(c_def.items()))
