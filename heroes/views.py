@@ -2,11 +2,15 @@ from django.http import HttpResponse, HttpResponseNotFound, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView
+from django.views.generic import FormView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .forms import *
 from .models import *
-from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import UserCreationForm ,AuthenticationForm
 from .utils import * 
+from django.contrib.auth.views import LoginView
+from django.contrib.auth import logout , login
+
 
 class HeroesHome(DataMixin, ListView): 
     
@@ -21,7 +25,7 @@ class HeroesHome(DataMixin, ListView):
         return dict(list(context.items()) + list(c_def.items()))
 
     def get_queryset(self):
-        return Heroes.objects.filter(is_published=True)
+        return Heroes.objects.filter(is_published=True).select_related('rub')
 
 
 # def index(request):
@@ -64,11 +68,22 @@ class AddPage(LoginRequiredMixin, DataMixin, CreateView):
 #         form = AddPostForm()
 #     return render(request, 'women/addpage.html', {'form': form, 'menu': menu, 'title': 'Добавление статьи'})
 
-def contact(request):
-    return HttpResponse("Обратная связь")
+class ContactFormView(DataMixin, FormView):
+    form_class = ContacForm 
+    template_name = 'heroes/contact.html'
+    success_url = reverse_lazy('home')
 
-def login(request):
-    return HttpResponse("Авторизация")
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title='Обратная связь')
+        return dict(list(context.items()) + list(c_def.items()))
+
+    def form_valid(self,form):
+        print(form.cleaned_data)
+        return redirect('home')
+
+#def login(request):
+#    return HttpResponse("Авторизация")
 
 
 def pageNotFound(request, exception):
@@ -108,11 +123,12 @@ class HeroesCategory(DataMixin, ListView):
     allow_empty = False
 
     def get_queryset(self):
-        return Heroes.objects.filter(rub__slug=self.kwargs['rub_slug'], is_published=True)
+        return Heroes.objects.filter(rub__slug=self.kwargs['rub_slug'], is_published=True).select_related('rub')
 
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        c_def = self.get_user_context(title='Категория - ' + str(context['posts'][0].rub),rub_selected=context['posts'][0].rub_id) 
+        c = Category.objects.get(slug = self.kwargs['rub_slug'])
+        c_def = self.get_user_context(title='Категория - ' + str(c.name),rub_selected=c.pk) 
         return dict(list(context.items()) + list(c_def.items()))
 
 
@@ -140,4 +156,26 @@ class RegisterUser(DataMixin, CreateView):
     def get_context_data(self, *, object_list=None, **kwargs):
         context = super().get_context_data(**kwargs)
         c_def = self.get_user_context(title='Регистрация Пользователя') 
-        return dict(list(context.items()) + list(c_def.items()))
+        return dict(list(context.items()) + list(c_def.items())) 
+
+    def form_valid(self,form):
+        user = form.save()
+        login(self.request,user)
+        return redirect('home')
+
+
+class LoginUser(DataMixin, LoginView):
+    form_class = LoginUserForm 
+    template_name = 'heroes/login.html'
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(**kwargs)
+        c_def = self.get_user_context(title='Авторизация') 
+        return dict(list(context.items()) + list(c_def.items()))     
+
+    def get_success_url(self):
+        return reverse_lazy('home') 
+
+def logout_user(request):
+    logout(request)
+    return redirect('login')

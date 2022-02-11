@@ -1,14 +1,18 @@
 from django.urls import path, re_path
-
+from django.views.decorators.cache import cache_page 
 from .views import *
 
 urlpatterns = [
-    path('', HeroesHome.as_view(), name='home'),
+    path('',HeroesHome.as_view(), name='home'),
     path('about/', about, name='about'),
     path('addpage/', AddPage.as_view(), name='add_page'),
-    path('contact/', contact, name='contact'),
-    path('login/', login, name='login'),
+    path('contact/', ContactFormView.as_view(), name='contact'),
+    path('login/', LoginUser.as_view(), name='login'),
     path('post/<slug:post_slug>/', ShowPost.as_view(), name='post'),
     path('category/<slug:rub_slug>/', HeroesCategory.as_view(), name='category'),
-    path('register/', RegisterUser.as_view(), name='register'),
+    path('register/', RegisterUser.as_view(), name='register'), 
+    path('logout/', logout_user, name='logout'),
+
 ]
+
+

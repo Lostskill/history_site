@@ -1,4 +1,4 @@
-
+from django.core.cache import cache
 from .models import *
 from django.db.models import Count
 
@@ -12,8 +12,10 @@ class DataMixin:
 
     def get_user_context(self, **kwargs):
         context = kwargs
-        rubs = Category.objects.annotate(Count('heroes'))
-        
+        rubs = cache.get('rubs')
+        if not rubs:
+            rubs = Category.objects.annotate(Count('heroes'))
+            cache.set('rubs', rubs, 60)
         
         user_menu = menu.copy()
         if not self.request.user.is_authenticated :
